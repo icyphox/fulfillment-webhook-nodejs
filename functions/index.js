@@ -19,36 +19,27 @@
 const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
-const {Card, Suggestion} = require('dialogflow-fulfillment');
+
+process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
 var db = admin.firestore();
 
-process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
   const agent = new WebhookClient({ request, response });
   console.log("dialogflowFirebaseFulfillment: Body: " + JSON.stringify(request.body));
 
-  function welcome (agent) {
-    console.log("Welcome intent handler");
-    agent.add(`Welcome to my agent!`);
-  }
-
-  function fallback (agent) {
-    agent.add(`I didn't understand`);
-    agent.add(`I'm sorry, can you try again?`);
-  }
-
-  function es() {
-    var type = request.body.queryResult.parameters['event_type'];
-    var count = request.body.queryResult.parameters['event_count'];
-    var name = request.body.queryResult.parameters['coordinator_name'];
-    var date = request.body.queryResult.parameters['event_date'];
-    var institution = request.body.queryResult.parameters['event_institution'];
-    var city = request.body.queryResult.parameters['event_city'];
-    var feedback = request.body.queryResult.parameters['event_feedback'];
+  function writeToDb (agent) {
+    // Get parameter from Dialogflow with the string to add to the database
+    let type = agent.parameters['event_type'];
+    let count = agent.parameters['event_count'];
+    let name = agent.parameters['coordinator_name'];
+    let date = agent.parameters['event_date'];
+    let institution = agent.parameters['event_institution'];
+    let city = agent.parameters['event_city'];
+    let feedback = agent.parameters['event_feedback'];
     
-    var EventSummary = {
+    let EventSummary = {
       "name": name,
       "type": type,
       "count": count,
@@ -56,26 +47,23 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       "institution": institution,
       "city": city,
       "feedback": feedback
-    }
-
-    console.log("*** event info" + name + ":" + type + ":" + count);
-    
-    return EventSummary;
-  }
-
-  function saveEvent(agent) {
-    let EventSummary = es();
-    console.log("Event Summary: " + EventSummary);
-    let newEventRef = db.collection("event-summary").doc();
-    newEventRef.set(EventSummary).then(function() {
-      console.log("Document successfully written!");
+    }    
+    // const databaseEntry = agent.parameters.databaseEntry;
+    const databaseEntry = agent.parameters;
+    const dialogflowAgentRef = db.collection('event-summary').doc();
+    return db.runTransaction(t => {
+      t.set(dialogflowAgentRef, {entry: databaseEntry});
+      return Promise.resolve('Write complete');
+    }).then(doc => {
+      agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
+    }).catch(err => {
+      console.log(`Error writing to Firestore: ${err}`);
+      agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
     });
   }
 
   // Run the proper function handler based on the matched Dialogflow intent name
   let intentMap = new Map();
-  intentMap.set('Default Welcome Intent', welcome);
-  intentMap.set('Default Fallback Intent', fallback);
-  intentMap.set('event.info', saveEvent);
+  intentMap.set('event.info', writeToDb);
   agent.handleRequest(intentMap);
 });
