@@ -98,8 +98,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
-      // Run the proper function handler based on the matched Dialogflow intent name
-      let intents = new Map();
-      intents.set('event.info', writeToDb);
-      agent.handleRequest(intents);
+    // Run the proper function handler based on the matched Dialogflow intent name
+    let intents = new Map();
+    intents.set('event.info', writeToDb);
+    agent.handleRequest(intents);
 });
