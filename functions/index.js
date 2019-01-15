@@ -19,7 +19,7 @@
 const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
-const {BigQuery} = require("@google-cloud/bigquery")
+const {BigQuery} = require("@google-cloud/bigquery");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -39,7 +39,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     dataset.exists().catch(err => {
         console.error(
             `dataset.exists: dataset ${datasetName} does not exist: ${JSON.stringify(err)}`
-        )
+        );
       return err;
     });
     
@@ -47,7 +47,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
      table.exists().catch(err => {
       console.error(
         `table.exists: table ${tableName} does not exist: ${JSON.stringify(err)}`
-      )
+      );
       return err;
     });
     
@@ -55,12 +55,12 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       	"ignoreUnknowValues": true,
 		"json": es,
       	"skipInvalidRows": true
-    }
+    };
     
     return table.insert(esBody, {raw: true}).catch(err => {
-        console.error(`table.insert: ${JSON.stringify(err)}`)
+        console.error(`table.insert: ${JSON.stringify(err)}`);
         return err;
-    })
+    });
   }
   
   function writeToDb (agent) {
