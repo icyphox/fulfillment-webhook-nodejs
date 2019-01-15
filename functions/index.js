@@ -76,7 +76,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     // converting ISO date to `date`
     let date = isoDate.split("T")[0];
     
-    let EventSummary = {
+    let eventSummary = {
       "name": name,
       "type": type,
       "count": count,
