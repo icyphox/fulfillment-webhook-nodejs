@@ -19,6 +19,7 @@
 const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
+const {BigQuery} = require("@google-cloud/bigquery")
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -29,15 +30,51 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   const agent = new WebhookClient({ request, response });
   console.log("dialogflowFirebaseFulfillment: Body: " + JSON.stringify(request.body));
 
+  function writeToBq (es) {
+    let datasetName = "hfn_event_bot";
+    let tableName = "event_summary";
+    let bq = new BigQuery();
+    
+    let dataset = bq.dataset(datasetName);
+    dataset.exists().catch(err => {
+        console.error(
+            `dataset.exists: dataset ${datasetName} does not exist: ${JSON.stringify(err)}`
+        )
+      return err;
+    });
+    
+    let table = dataset.table(tableName);
+     table.exists().catch(err => {
+      console.error(
+        `table.exists: table ${tableName} does not exist: ${JSON.stringify(err)}`
+      )
+      return err;
+    });
+    
+    var esBody = {
+      	"ignoreUnknowValues": true,
+		"json": es,
+      	"skipInvalidRows": true
+    }
+    
+    return table.insert(esBody, {raw: true}).catch(err => {
+        console.error(`table.insert: ${JSON.stringify(err)}`)
+        return err;
+    })
+  }
+  
   function writeToDb (agent) {
     // Get parameter from Dialogflow with the string to add to the database
     let type = agent.parameters['event_type'];
     let count = agent.parameters['event_count'];
     let name = agent.parameters['coordinator_name'];
-    let date = agent.parameters['event_date'];
+    let isoDate = agent.parameters['event_date'];
     let institution = agent.parameters['event_institution'];
     let city = agent.parameters['event_city'];
     let feedback = agent.parameters['event_feedback'];
+   	
+    // converting ISO date to `date`
+    let date = isoDate.split("T")[0];
     
     let EventSummary = {
       "name": name,
@@ -53,6 +90,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     const dialogflowAgentRef = db.collection('event-summary').doc();
     return db.runTransaction(t => {
       t.set(dialogflowAgentRef, {entry: databaseEntry});
+      writeToBq(EventSummary);
       return Promise.resolve('Write complete');
     }).then(doc => {
       agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
