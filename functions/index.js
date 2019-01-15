@@ -57,13 +57,13 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }).then(doc => {
       agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
     }).catch(err => {
-      console.log(`Error writing to Firestore: ${err}`);
-      agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
+      console.error(`error writing to Firestore: ${err}`);
+      agent.add(`Sorry, There was an error. Please try again later!!`);
     });
   }
 
   // Run the proper function handler based on the matched Dialogflow intent name
-  let intentMap = new Map();
-  intentMap.set('event.info', writeToDb);
-  agent.handleRequest(intentMap);
+  let intents = new Map();
+  intents.set('event.info', writeToDb);
+  agent.handleRequest(intents);
 });
