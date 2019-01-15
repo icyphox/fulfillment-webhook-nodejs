@@ -90,7 +90,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     const dialogflowAgentRef = db.collection('event-summary').doc();
     return db.runTransaction(t => {
       t.set(dialogflowAgentRef, {entry: databaseEntry});
-      writeToBq(EventSummary);
+      writeToBq(eventSummary);
       return Promise.resolve('Write complete');
     }).then(doc => {
       agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
