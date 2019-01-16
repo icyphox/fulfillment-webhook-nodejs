@@ -20,6 +20,7 @@ const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
+const FuzzySearch = require("fuzzy-search");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -63,6 +64,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
+    function findCity (city) {
+        let cities = [
+            "Bangalore",
+            "Chennai",
+            "Delhi",
+            "Mumbai"
+        ];
+
+		var fuzzy = new FuzzySearch(cities, {caseSensitive: false});
+		var result = fuzzy.search(city);
+		return result[0];
+    }
+
     function writeToDb (agent) {
         // Get parameter from Dialogflow with the string to add to the database
         let type = agent.parameters['event_type'];
@@ -70,7 +84,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let name = agent.parameters['coordinator_name'];
         let isoDate = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
-        let city = agent.parameters['event_city'];
+        let city = findCity(agent.parameters['event_city']);
         let feedback = agent.parameters['event_feedback'];
         // converting ISO date to `date`
         let date = isoDate.split("T")[0];
