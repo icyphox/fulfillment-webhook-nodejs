@@ -20,7 +20,8 @@ const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
-const FuzzySearch = require("fuzzy-search");
+const Fuse = require("fuse.js");
+const Cities = require("indian-cities-json");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -65,16 +66,12 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function findCity (city) {
-        let cities = [
-            "Bangalore",
-            "Chennai",
-            "Delhi",
-            "Mumbai"
-        ];
-
-		var fuzzy = new FuzzySearch(cities, {caseSensitive: false});
-		var result = fuzzy.search(city);
-		return result[0];
+		let options = {
+			keys: ["name"]
+		}
+		let fuse = new Fuse(Cities.cities, options);
+		let result = fuse.search(city);
+		return result[0]["name"];
     }
 
     function writeToDb (agent) {
