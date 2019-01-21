@@ -6174,7 +6174,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         ];
 		var fuzzy = new FuzzySearch(cities, ['name'],{caseSensitive: false});
 		var result = fuzzy.search(city);
-		return result[0];
+		return result[0]["name"];
     }
 
     function writeToDb (agent) {
